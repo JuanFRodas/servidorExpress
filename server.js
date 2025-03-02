@@ -1,60 +1,81 @@
 const express = require("express");
 const cors = require("cors");
+const mysql = require("mysql");
 const app = express();
+
+const conection = mysql.createConnection({
+  host: "db4free.net",
+  port: 3306,
+  user: "estudiantesweb",
+  password: "admin12345",
+  database: "cursoweb",
+});
+
+conection.connect((err) => {
+  if (err) console.log("error", err);
+  console.log("Conectado a mysql");
+});
 
 app.use(cors());
 app.use(express.json());
 
-let herramientas = [
-  { id: "1", nombre: "Almadana", descripcion: "16 libras", precio: 120 },
-  { id: "2", nombre: "Taladro", descripcion: "5000rpm", precio: 250 },
-  { id: "3", nombre: "Motosierra", descripcion: "9000rpm", precio: 800 },
-];
-
-app.get("/", (req, res) => {
-  res.send("Servidor 3000");
-});
+// -------------- GET ------------------
 
 app.get("/lista", (req, res) => {
-  res.json(herramientas);
+  conection.query("SELECT * FROM student", (err, results) => {
+    if (err) {
+    }
+
+    res.json(results);
+  });
 });
+
+//-------------- POST ------------------
 
 app.post("/lista", (req, res) => {
-  const { id, nombre, descripcion, precio } = req.body;
+  const { name, last_name, identification, email, phone } = req.body;
 
-  if (!id || !nombre || !descripcion || !precio) {
-    return res.json({ mesaje: "Mal ingresado" });
-  }
-
-  herramientas.push({ id, nombre, descripcion, precio });
-  return res.json({ mesaje: "Todo correcto" });
+  conection.query(
+    "INSERT INTO student (name,last_name,identification,email,phone) VALUES (?,?,?,?,?)",
+    [name, last_name, identification, email, phone],
+    (err, result) => {}
+  );
+  res.json({ Mensaje: "agregado" });
 });
 
-app.put("/lista/:id", (req, res) => {
-  const { id } = req.params;
-  const { nombre, descripcion, precio } = req.body;
+//------------------ FIND BY --------------
 
-  const producto = herramientas.find((p) => p.id === id);
+app.get("/lista2/:identification", (req, res) => {
+  const identification = req.params.identification;
+  conection.query(
+    "SELECT * FROM student WHERE identification=?",
+    [identification],
+    (err, result) => {
+      if (err) {
+      }
 
-  if (!producto) {
-    return res.status(400).json({ mensaje: "Mal ingresado" });
-  }
-  if (nombre) {
-    producto.nombre = nombre;
-  }
-  if (descripcion) {
-    producto.descripcion = descripcion;
-  }
-  if (precio) {
-    producto.precio = precio;
-  }
-  return res.json({ Mensaje: "Bien" });
+      res.json(result);
+    }
+  );
 });
 
-app.delete("/lista/:id", (req, res) => {
-  const { id } = req.params;
-  herramientas = herramientas.filter((p) => p.id !== id);
-  res.json({ Mensaje: "jugador 52 ELIMINADO" });
+//-------------- UPDATE --------------------- //Este metodo no ha sido verificado.
+
+app.put("/lista/:identification", (req, res) => {
+  const id = req.params.id;
+  const { name, last_name, identification, email, phone } = req.body;
+
+  conection.query(
+    "UPDATE student SET name = ?, last_name = ?, email = ?, phone = ? WHERE id = ?",
+    [name, last_name, identification, email, phone, id],
+    (err, result) => {
+      if (err) {
+        return res.json({ error: "Error en la consulta" });
+      }
+
+      res.json({ mensaje: "Estudiante actualizado correctamente" });
+    }
+  );
 });
 
 app.listen(3000, () => {
